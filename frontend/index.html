@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Student Achievement Certificate</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Blockchain Final Project</p>
+          <h1>Student Achievement Certificate</h1>
+        </div>
+        <div class="wallet-actions">
+          <button id="connectWalletBtn" class="primary-button" type="button">Connect Wallet</button>
+          <button id="forgetWalletBtn" class="ghost-button" type="button">Forget Wallet</button>
+        </div>
+      </header>
+
+      <section class="status-strip" aria-label="Wallet and contract status">
+        <div>
+          <span>Wallet</span>
+          <strong id="walletAddress">Not connected</strong>
+        </div>
+        <div>
+          <span>Network</span>
+          <strong id="networkName">Unknown</strong>
+        </div>
+        <div>
+          <span>Contract owner</span>
+          <strong id="ownerAddress">Not loaded</strong>
+        </div>
+      </section>
+
+      <section class="contract-panel" aria-label="Contract settings">
+        <label for="contractAddress">Contract address</label>
+        <div class="inline-form">
+          <input id="contractAddress" type="text" placeholder="0x..." autocomplete="off" />
+          <button id="loadContractBtn" type="button">Load</button>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <form id="submitForm" class="panel">
+          <div class="panel-header">
+            <p class="eyebrow">Student</p>
+            <h2>Submit Application</h2>
+          </div>
+          <label for="studentName">Student name</label>
+          <input id="studentName" type="text" required placeholder="Ada Chen" />
+
+          <label for="certificateTitle">Certificate title</label>
+          <input id="certificateTitle" type="text" required placeholder="Blockchain Programming Award" />
+
+          <label for="achievementDescription">Achievement description</label>
+          <textarea
+            id="achievementDescription"
+            required
+            rows="5"
+            placeholder="Completed a blockchain-based NFT certificate system using Solidity, MetaMask, and ethers.js."
+          ></textarea>
+
+          <label for="evidenceUrl">Evidence URL</label>
+          <input
+            id="evidenceUrl"
+            type="url"
+            required
+            placeholder="https://github.com/example/student-certificate-dapp"
+          />
+
+          <div id="aiReviewResult" class="ai-review-result empty-state">
+            AI review result will appear here after submission.
+          </div>
+
+          <button id="submitBtn" class="primary-button" type="submit">Submit for AI Review</button>
+        </form>
+
+        <section class="panel">
+          <div class="panel-header">
+            <p class="eyebrow">Teacher</p>
+            <h2>Review Queue</h2>
+          </div>
+          <div class="review-actions">
+            <input id="reviewRequestId" type="number" min="1" placeholder="Request ID" />
+            <button id="approveBtn" type="button">Approve</button>
+            <button id="mintBtn" type="button">Mint NFT</button>
+          </div>
+          <div class="reject-row">
+            <input id="rejectReason" type="text" placeholder="Reject reason" />
+            <button id="rejectBtn" class="danger-button" type="button">Reject</button>
+          </div>
+          <button id="refreshBtn" class="ghost-button" type="button">Refresh Requests</button>
+        </section>
+      </section>
+
+      <section class="requests-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Workflow</p>
+            <h2>Certificate Requests</h2>
+          </div>
+          <span id="requestCount">0 requests</span>
+        </div>
+        <div id="requestList" class="request-list"></div>
+      </section>
+
+      <section class="event-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Chain Events</p>
+            <h2>Activity Log</h2>
+          </div>
+          <button id="clearLogBtn" class="ghost-button" type="button">Clear</button>
+        </div>
+        <ol id="eventLog" class="event-log"></ol>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.12.1/dist/ethers.umd.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
