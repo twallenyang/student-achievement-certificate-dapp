@@ -54,7 +54,14 @@ Start the AI review server:
 npm run server
 ```
 
-Open `frontend/index.html` in a browser, connect MetaMask to `http://127.0.0.1:8545`, import a Hardhat test account, and paste the deployed contract address.
+Start the frontend in another terminal:
+
+```bash
+cd frontend
+python3 -m http.server 8000
+```
+
+Open `http://localhost:8000` in a browser, connect MetaMask to `http://127.0.0.1:8545`, import a Hardhat test account, and paste the deployed contract address.
 
 ## AI Review Server
 
