@@ -71,10 +71,10 @@
           />
 
           <div id="aiReviewResult" class="ai-review-result empty-state">
-            AI review result will appear here after submission.
+            Mock AI review result will appear here after submission.
           </div>
 
-          <button id="submitBtn" class="primary-button" type="submit">Submit for AI Review</button>
+          <button id="submitBtn" class="primary-button submit-button" type="submit">Submit Application</button>
         </form>
 
         <section class="panel">
@@ -91,7 +91,13 @@
             <input id="rejectReason" type="text" placeholder="Reject reason" />
             <button id="rejectBtn" class="danger-button" type="button">Reject</button>
           </div>
+          <button id="openaiReviewBtn" class="ghost-button teacher-openai-button" type="button">
+            Run OpenAI Review
+          </button>
           <button id="refreshBtn" class="ghost-button" type="button">Refresh Requests</button>
+          <div id="openaiReviewResult" class="ai-review-result empty-state">
+            Enter a Request ID, then run OpenAI review to compare it with the stored mock AI result.
+          </div>
         </section>
       </section>
 

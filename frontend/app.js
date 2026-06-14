@@ -18,7 +18,8 @@ const ABI = [
 ];
 
 const STATUS_NAMES = ["Pending", "AIReviewed", "Approved", "Rejected", "Completed"];
-const AI_REVIEW_URL = "http://localhost:3001/api/ai-review";
+const MOCK_AI_REVIEW_URL = "http://localhost:3001/api/ai-review";
+const OPENAI_REVIEW_URL = "http://localhost:3001/api/openai-review";
 const LOCAL_RPC_URLS = ["http://127.0.0.1:8545", "http://localhost:8545"];
 
 const state = {
@@ -45,6 +46,8 @@ const elements = {
   achievementDescription: document.querySelector("#achievementDescription"),
   evidenceUrl: document.querySelector("#evidenceUrl"),
   aiReviewResult: document.querySelector("#aiReviewResult"),
+  openaiReviewBtn: document.querySelector("#openaiReviewBtn"),
+  openaiReviewResult: document.querySelector("#openaiReviewResult"),
   reviewRequestId: document.querySelector("#reviewRequestId"),
   approveBtn: document.querySelector("#approveBtn"),
   mintBtn: document.querySelector("#mintBtn"),
@@ -63,9 +66,14 @@ async function connectWallet() {
     return;
   }
 
+  const previousAccount = getDisplayedWalletAddress();
   state.provider = new ethers.BrowserProvider(window.ethereum);
   const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
   const selectedAccount = ethers.getAddress(accounts[0]);
+  if (previousAccount && previousAccount !== selectedAccount) {
+    resetWalletScopedFields();
+  }
+
   state.signer = await state.provider.getSigner(selectedAccount);
   state.account = selectedAccount;
 
@@ -93,6 +101,7 @@ async function forgetWallet() {
   elements.connectWalletBtn.textContent = "Connect Wallet";
   elements.requestList.innerHTML = "";
   elements.requestCount.textContent = "0 requests";
+  resetWalletScopedFields();
 
   addLog("Frontend wallet state cleared. Switch account in MetaMask, then click Connect Wallet again.");
 }
@@ -170,20 +179,8 @@ async function submitApplication(event) {
   event.preventDefault();
   if (!ensureContract()) return;
 
-  const studentName = elements.studentName.value.trim();
-  const certificateTitle = elements.certificateTitle.value.trim();
-  const achievementDescription = elements.achievementDescription.value.trim();
-  const evidenceUrl = elements.evidenceUrl.value.trim();
-
-  if (!studentName || !certificateTitle || !achievementDescription || !evidenceUrl) {
-    addLog("Fill in student name, certificate title, achievement description, and evidence URL before submitting.");
-    return;
-  }
-
-  if (!isHttpUrl(evidenceUrl)) {
-    addLog("Evidence URL must start with http:// or https://.");
-    return;
-  }
+  const payload = getApplicationPayload();
+  if (!payload) return;
 
   state.account = await state.signer.getAddress();
   const alreadyApplied = await state.readContract.hasApplied(state.account);
@@ -192,35 +189,30 @@ async function submitApplication(event) {
     return;
   }
 
-  addLog("Requesting AI review from the backend server.");
+  addLog("Requesting mock AI review from the backend server.");
   elements.submitBtn.disabled = true;
 
-  // 送出鏈上申請前先取得 AI 審核結果，但 AI 只作為 Teacher 參考。
-  const aiReview = await requestAIReview({
-    studentName,
-    certificateTitle,
-    achievementDescription,
-    evidenceUrl
-  });
-  renderAIReview(aiReview);
+  // Submit 流程固定使用 mock AI；OpenAI 比較結果由 Teacher 另外用 Request ID 產生。
+  const aiReview = await requestAIReview(MOCK_AI_REVIEW_URL, payload);
+  renderAIReview(elements.aiReviewResult, "Mock AI Review Result", aiReview);
 
   // 第一筆交易：在鏈上建立學生申請。
-  addLog("AI review received. Confirm the application transaction in MetaMask.");
+  addLog("Mock AI review received. Confirm the application transaction in MetaMask.");
   const submitTx = await state.contract.submitRequest(
-    studentName,
-    certificateTitle,
-    achievementDescription,
-    evidenceUrl
+    payload.studentName,
+    payload.certificateTitle,
+    payload.achievementDescription,
+    payload.evidenceUrl
   );
 
   addLog(`Submit transaction sent: ${submitTx.hash}`);
   const submitReceipt = await submitTx.wait();
   const requestId = getSubmittedRequestId(submitReceipt);
   const metadataURI = buildMetadataURI({
-    studentName,
-    certificateTitle,
-    achievementDescription,
-    evidenceUrl,
+    studentName: payload.studentName,
+    certificateTitle: payload.certificateTitle,
+    achievementDescription: payload.achievementDescription,
+    evidenceUrl: payload.evidenceUrl,
     aiReview
   });
 
@@ -240,6 +232,31 @@ async function submitApplication(event) {
   elements.submitForm.reset();
   elements.submitBtn.disabled = false;
   await refreshRequests();
+}
+
+async function previewOpenAIReview() {
+  if (!ensureContract()) return;
+  const requestId = getReviewRequestId();
+  if (!requestId) return;
+
+  const request = await state.readContract.requests(requestId);
+  const payload = getPayloadFromRequest(request);
+
+  addLog(`Requesting OpenAI review preview for request #${requestId} from the backend server.`);
+  elements.openaiReviewBtn.disabled = true;
+  elements.openaiReviewResult.classList.remove("empty-state");
+  elements.openaiReviewResult.innerHTML = `<p>Waiting for OpenAI review output for request #${requestId}...</p>`;
+
+  try {
+    const review = await requestAIReview(OPENAI_REVIEW_URL, payload);
+    renderAIReview(elements.openaiReviewResult, `OpenAI Review Output for Request #${requestId}`, review);
+    addLog(`OpenAI review preview for request #${requestId} received: ${review.aiSuggestion}, ${review.score}/100, ${review.certificateLevel}.`);
+  } catch (error) {
+    renderReviewError(elements.openaiReviewResult, "OpenAI Review Output", getErrorMessage(error));
+    throw error;
+  } finally {
+    elements.openaiReviewBtn.disabled = false;
+  }
 }
 
 async function approveRequest() {
@@ -331,8 +348,8 @@ function renderRequests(requests) {
     .join("");
 }
 
-async function requestAIReview(payload) {
-  const response = await fetch(AI_REVIEW_URL, {
+async function requestAIReview(url, payload) {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -347,6 +364,8 @@ async function requestAIReview(payload) {
   }
 
   const normalized = {
+    mode: String(result.mode || ""),
+    model: String(result.model || ""),
     aiSuggestion: String(result.aiSuggestion || "Needs Review"),
     score: Number(result.score),
     reason: String(result.reason || "AI did not provide a reason."),
@@ -361,11 +380,48 @@ async function requestAIReview(payload) {
   return normalized;
 }
 
-function renderAIReview(review) {
-  elements.aiReviewResult.classList.remove("empty-state");
-  elements.aiReviewResult.innerHTML = `
-    <h3>AI Review Result</h3>
+function getApplicationPayload() {
+  const payload = {
+    studentName: elements.studentName.value.trim(),
+    certificateTitle: elements.certificateTitle.value.trim(),
+    achievementDescription: elements.achievementDescription.value.trim(),
+    evidenceUrl: elements.evidenceUrl.value.trim()
+  };
+
+  if (!payload.studentName || !payload.certificateTitle || !payload.achievementDescription || !payload.evidenceUrl) {
+    addLog("Fill in student name, certificate title, achievement description, and evidence URL before requesting a review.");
+    return null;
+  }
+
+  if (!isHttpUrl(payload.evidenceUrl)) {
+    addLog("Evidence URL must start with http:// or https://.");
+    return null;
+  }
+
+  return payload;
+}
+
+function getPayloadFromRequest(request) {
+  return {
+    studentName: String(request.studentName || ""),
+    certificateTitle: String(request.certificateTitle || ""),
+    achievementDescription: String(request.achievementDescription || ""),
+    evidenceUrl: String(request.evidenceUrl || "")
+  };
+}
+
+function renderAIReview(target, title, review) {
+  target.classList.remove("empty-state");
+  const modeDetails = review.model
+    ? `<dt>Model</dt><dd>${escapeHtml(review.model)}</dd>`
+    : "";
+
+  target.innerHTML = `
+    <h3>${escapeHtml(title)}</h3>
     <dl>
+      <dt>Mode</dt>
+      <dd>${escapeHtml(review.mode || "mock")}</dd>
+      ${modeDetails}
       <dt>Suggestion</dt>
       <dd>${escapeHtml(review.aiSuggestion)}</dd>
       <dt>Score</dt>
@@ -377,6 +433,15 @@ function renderAIReview(review) {
       <dt>Metadata</dt>
       <dd>${escapeHtml(review.metadataDescription)}</dd>
     </dl>
+    <pre class="review-json">${escapeHtml(JSON.stringify(review, null, 2))}</pre>
+  `;
+}
+
+function renderReviewError(target, title, message) {
+  target.classList.remove("empty-state");
+  target.innerHTML = `
+    <h3>${escapeHtml(title)}</h3>
+    <p class="error-text">${escapeHtml(message)}</p>
   `;
 }
 
@@ -563,10 +628,30 @@ function escapeAttribute(value) {
   return escapeHtml(value).replaceAll("`", "&#096;");
 }
 
+function resetWalletScopedFields() {
+  elements.submitForm.reset();
+  elements.aiReviewResult.classList.add("empty-state");
+  elements.aiReviewResult.textContent = "Mock AI review result will appear here after submission.";
+  elements.openaiReviewResult.classList.add("empty-state");
+  elements.openaiReviewResult.textContent = "Enter a Request ID, then run OpenAI review to compare it with the stored mock AI result.";
+  elements.reviewRequestId.value = "";
+  elements.rejectReason.value = "";
+  elements.submitBtn.disabled = false;
+  elements.openaiReviewBtn.disabled = false;
+}
+
+function getDisplayedWalletAddress() {
+  if (state.account) return state.account;
+
+  const displayed = elements.walletAddress.textContent.trim();
+  return ethers.isAddress(displayed) ? ethers.getAddress(displayed) : null;
+}
+
 elements.connectWalletBtn.addEventListener("click", () => runAction(connectWallet));
 elements.forgetWalletBtn.addEventListener("click", () => runAction(forgetWallet));
 elements.loadContractBtn.addEventListener("click", () => runAction(loadContract));
 elements.submitForm.addEventListener("submit", (event) => runAction(() => submitApplication(event)));
+elements.openaiReviewBtn.addEventListener("click", () => runAction(previewOpenAIReview));
 elements.approveBtn.addEventListener("click", () => runAction(approveRequest));
 elements.rejectBtn.addEventListener("click", () => runAction(rejectRequest));
 elements.mintBtn.addEventListener("click", () => runAction(mintCertificate));
@@ -578,6 +663,11 @@ elements.clearLogBtn.addEventListener("click", () => {
 if (window.ethereum) {
   window.ethereum.on("accountsChanged", (accounts) => {
     const nextAccount = accounts[0] ? ethers.getAddress(accounts[0]) : "Not connected";
+    const previousAccount = getDisplayedWalletAddress();
+    if (previousAccount && previousAccount !== nextAccount) {
+      resetWalletScopedFields();
+    }
+
     addLog(`MetaMask account changed: ${nextAccount}. Click Connect Wallet again before sending transactions.`);
     state.signer = null;
     state.contract = null;
@@ -586,6 +676,7 @@ if (window.ethereum) {
     elements.connectWalletBtn.textContent = "Connect Wallet";
   });
   window.ethereum.on("chainChanged", () => {
+    resetWalletScopedFields();
     addLog("MetaMask network changed. Click Connect Wallet and Load again.");
     state.signer = null;
     state.contract = null;

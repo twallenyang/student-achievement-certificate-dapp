@@ -227,6 +227,11 @@ h2 {
   margin-top: 10px;
 }
 
+.submit-button,
+.teacher-openai-button {
+  margin-top: 14px;
+}
+
 .requests-section,
 .event-section {
   padding: 18px;
@@ -366,6 +371,24 @@ h2 {
 .ai-review-result dd {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.review-json {
+  max-height: 220px;
+  margin: 14px 0 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #f7f9fd;
+  color: var(--ink);
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+}
+
+.error-text {
+  color: var(--red);
+  font-weight: 700;
 }
 
 @media (max-width: 800px) {

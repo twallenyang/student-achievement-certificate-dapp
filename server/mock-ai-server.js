@@ -75,57 +75,58 @@ app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     service: "ai-assisted-certificate-review",
-    mode: openaiApiKey ? "openai" : "mock",
+    defaultMode: "mock",
+    openaiAvailable: Boolean(openaiApiKey),
     model: openaiApiKey ? openaiModel : null
   });
 });
 
-app.post("/api/ai-review", async (req, res) => {
+app.post("/api/ai-review", (req, res) => {
   // 前端只送申請資料；API key 與固定 prompt 規則都留在後端。
-  const { studentName, certificateTitle, achievementDescription, evidenceUrl } = req.body;
-  const missing = [];
+  const validation = validateReviewRequest(req.body);
+  if (validation.error) return res.status(400).json(validation.error);
 
-  if (!studentName) missing.push("studentName");
-  if (!certificateTitle) missing.push("certificateTitle");
-  if (!achievementDescription) missing.push("achievementDescription");
-  if (!evidenceUrl) missing.push("evidenceUrl");
+  try {
+    const review = reviewAchievementWithMock(validation.payload);
 
-  if (missing.length > 0) {
-    return res.status(400).json({
+    res.json({
+      mode: "mock",
+      ...review
+    });
+  } catch (error) {
+    console.error("Mock AI review failed:", error.message);
+    res.status(500).json({
       aiSuggestion: "Needs Review",
       score: 0,
-      reason: `Missing fields: ${missing.join(", ")}`,
+      reason: "Mock AI 審核失敗，請檢查後端 server。",
       certificateLevel: "None",
       metadataDescription: ""
     });
   }
+});
 
-  if (!isHttpUrl(evidenceUrl)) {
+app.post("/api/openai-review", async (req, res) => {
+  const validation = validateReviewRequest(req.body);
+  if (validation.error) return res.status(400).json(validation.error);
+
+  if (!openaiApiKey) {
     return res.status(400).json({
       aiSuggestion: "Needs Review",
       score: 0,
-      reason: "Evidence URL must start with http:// or https://.",
+      reason: "OPENAI_API_KEY is not configured. Add it to .env, then restart npm run server.",
       certificateLevel: "None",
       metadataDescription: ""
     });
   }
 
   try {
-    const review = openaiApiKey
-      ? await reviewAchievementWithOpenAI({
-          studentName,
-          certificateTitle,
-          achievementDescription,
-          evidenceUrl
-        })
-      : reviewAchievementWithMock({
-          studentName,
-          certificateTitle,
-          achievementDescription,
-          evidenceUrl
-        });
+    const review = await reviewAchievementWithOpenAI(validation.payload);
 
-    res.json(review);
+    res.json({
+      mode: "openai",
+      model: openaiModel,
+      ...review
+    });
   } catch (error) {
     console.error("AI review failed:", error.message);
     res.status(502).json({
@@ -137,6 +138,49 @@ app.post("/api/ai-review", async (req, res) => {
     });
   }
 });
+
+function validateReviewRequest(body) {
+  const { studentName, certificateTitle, achievementDescription, evidenceUrl } = body;
+  const missing = [];
+
+  if (!studentName) missing.push("studentName");
+  if (!certificateTitle) missing.push("certificateTitle");
+  if (!achievementDescription) missing.push("achievementDescription");
+  if (!evidenceUrl) missing.push("evidenceUrl");
+
+  if (missing.length > 0) {
+    return {
+      error: {
+        aiSuggestion: "Needs Review",
+        score: 0,
+        reason: `Missing fields: ${missing.join(", ")}`,
+        certificateLevel: "None",
+        metadataDescription: ""
+      }
+    };
+  }
+
+  if (!isHttpUrl(evidenceUrl)) {
+    return {
+      error: {
+        aiSuggestion: "Needs Review",
+        score: 0,
+        reason: "Evidence URL must start with http:// or https://.",
+        certificateLevel: "None",
+        metadataDescription: ""
+      }
+    };
+  }
+
+  return {
+    payload: {
+      studentName,
+      certificateTitle,
+      achievementDescription,
+      evidenceUrl
+    }
+  };
+}
 
 app.post("/review-certificate", (req, res) => {
   const { studentName, certificateTitle, evidenceText } = req.body;
