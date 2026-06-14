@@ -86,7 +86,7 @@ npm run frontend
 npm run deploy:localhost
 ```
 
-5. Open `http://localhost:8000`, connect MetaMask to Hardhat Local, and paste the deployed contract address.
+5. Open `http://localhost:5173`, connect MetaMask to Hardhat Local, and paste the deployed contract address.
 
 Hardhat Local settings:
 
