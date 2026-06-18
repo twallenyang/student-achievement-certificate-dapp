@@ -72,6 +72,7 @@ contract StudentAchievementCertificate {
     error InvalidStatus(Status current, Status expected);
     error InvalidTokenId(uint256 tokenId);
     error InvalidReceiver(address receiver);
+    error TeacherCannotSubmitApplication();
 
     modifier onlyOwner() {
         if (msg.sender != owner) {
@@ -93,6 +94,9 @@ contract StudentAchievementCertificate {
         string calldata achievementDescription,
         string calldata evidenceUrl
     ) external returns (uint256) {
+        if (msg.sender == owner) {
+            revert TeacherCannotSubmitApplication();
+        }
         require(!hasApplied[msg.sender], "Student already submitted an application");
         require(bytes(studentName).length > 0, "Student name is required");
         require(bytes(certificateTitle).length > 0, "Certificate title is required");

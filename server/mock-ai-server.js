@@ -41,6 +41,7 @@ Important rules:
 - Do not overestimate unclear or unverifiable submissions.
 - Treat the evidence URL as supporting material only; do not assume it proves the work unless it appears relevant.
 - If the achievement description is vague, incomplete, or unrelated to blockchain, return "Needs Review" or "Reject".
+- The reason must explain the concrete basis for the score, including relevant strengths, missing details, evidence quality, and why the final suggestion was chosen.
 - Return only valid JSON.
 - Do not include Markdown.
 - Do not include explanations outside JSON.
@@ -63,7 +64,7 @@ Output JSON format:
 {
   "aiSuggestion": "Approve | Reject | Needs Review",
   "score": 0,
-  "reason": "short explanation in Traditional Chinese",
+  "reason": "detailed explanation in Traditional Chinese",
   "certificateLevel": "Gold | Silver | Bronze | None",
   "metadataDescription": "short NFT metadata description in English"
 }`;

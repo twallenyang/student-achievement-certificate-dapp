@@ -1,130 +1,137 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Student Achievement Certificate</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <main class="app-shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Blockchain Final Project</p>
-          <h1>Student Achievement Certificate</h1>
-        </div>
-        <div class="wallet-actions">
-          <button id="connectWalletBtn" class="primary-button" type="button">Connect Wallet</button>
-          <button id="forgetWalletBtn" class="ghost-button" type="button">Forget Wallet</button>
-        </div>
-      </header>
-
-      <section class="status-strip" aria-label="Wallet and contract status">
-        <div>
-          <span>Wallet</span>
-          <strong id="walletAddress">Not connected</strong>
-        </div>
-        <div>
-          <span>Network</span>
-          <strong id="networkName">Unknown</strong>
-        </div>
-        <div>
-          <span>Contract owner</span>
-          <strong id="ownerAddress">Not loaded</strong>
-        </div>
-      </section>
-
-      <section class="contract-panel" aria-label="Contract settings">
-        <label for="contractAddress">Contract address</label>
-        <div class="inline-form">
-          <input id="contractAddress" type="text" placeholder="0x..." autocomplete="off" />
-          <button id="loadContractBtn" type="button">Load</button>
-        </div>
-      </section>
-
-      <section class="workspace">
-        <form id="submitForm" class="panel">
-          <div class="panel-header">
-            <p class="eyebrow">Student</p>
-            <h2>Submit Application</h2>
-          </div>
-          <label for="studentName">Student name</label>
-          <input id="studentName" type="text" required placeholder="Ada Chen" />
-
-          <label for="certificateTitle">Certificate title</label>
-          <input id="certificateTitle" type="text" required placeholder="Blockchain Programming Award" />
-
-          <label for="achievementDescription">Achievement description</label>
-          <textarea
-            id="achievementDescription"
-            required
-            rows="5"
-            placeholder="Completed a blockchain-based NFT certificate system using Solidity, MetaMask, and ethers.js."
-          ></textarea>
-
-          <label for="evidenceUrl">Evidence URL</label>
-          <input
-            id="evidenceUrl"
-            type="url"
-            required
-            placeholder="https://github.com/example/student-certificate-dapp"
-          />
-
-          <div id="aiReviewResult" class="ai-review-result empty-state">
-            Mock AI review result will appear here after submission.
-          </div>
-
-          <button id="submitBtn" class="primary-button submit-button" type="submit">Submit Application</button>
-        </form>
-
-        <section class="panel">
-          <div class="panel-header">
-            <p class="eyebrow">Teacher</p>
-            <h2>Review Queue</h2>
-          </div>
-          <div class="review-actions">
-            <input id="reviewRequestId" type="number" min="1" placeholder="Request ID" />
-            <button id="approveBtn" type="button">Approve</button>
-            <button id="mintBtn" type="button">Mint NFT</button>
-          </div>
-          <div class="reject-row">
-            <input id="rejectReason" type="text" placeholder="Reject reason" />
-            <button id="rejectBtn" class="danger-button" type="button">Reject</button>
-          </div>
-          <button id="openaiReviewBtn" class="ghost-button teacher-openai-button" type="button">
-            Run OpenAI Review
-          </button>
-          <button id="refreshBtn" class="ghost-button" type="button">Refresh Requests</button>
-          <div id="openaiReviewResult" class="ai-review-result empty-state">
-            Enter a Request ID, then run OpenAI review to compare it with the stored mock AI result.
-          </div>
-        </section>
-      </section>
-
-      <section class="requests-section">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Workflow</p>
-            <h2>Certificate Requests</h2>
-          </div>
-          <span id="requestCount">0 requests</span>
-        </div>
-        <div id="requestList" class="request-list"></div>
-      </section>
-
-      <section class="event-section">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Chain Events</p>
-            <h2>Activity Log</h2>
-          </div>
-          <button id="clearLogBtn" class="ghost-button" type="button">Clear</button>
-        </div>
-        <ol id="eventLog" class="event-log"></ol>
-      </section>
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.12.1/dist/ethers.umd.min.js"></script>
-    <script src="./app.js"></script>
-  </body>
+<!doctype html> 
+<html lang="zh-TW"> 
+  <head> 
+    <meta charset="utf-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1" /> 
+    <title>學生學業成就證書 DApp</title> 
+    <link rel="stylesheet" href="./styles.css" /> 
+  </head> 
+  <body> 
+    <main class="app-shell"> 
+      <header class="topbar"> 
+        <div> 
+          <p class="eyebrow">區塊鏈期末專案</p> 
+          <h1>學生學業成就證書</h1> 
+        </div> 
+        <div class="wallet-actions"> 
+          <button id="connectWalletBtn" class="primary-button" type="button">連接錢包</button> 
+          <button id="forgetWalletBtn" class="ghost-button" type="button">斷開連線</button> 
+        </div> 
+      </header> 
+ 
+      <section class="status-strip" aria-label="錢包與合約狀態"> 
+        <div> 
+          <span>當前錢包</span> 
+          <strong id="walletAddress">未連接</strong> 
+        </div> 
+        <div> 
+          <span>網路狀態</span> 
+          <strong id="networkName">未知網路</strong> 
+        </div> 
+        <div> 
+          <span>合約擁有者 (老師)</span> 
+          <strong id="ownerAddress">尚未載入</strong> 
+        </div> 
+      </section> 
+ 
+      <section class="contract-panel" aria-label="合約設定"> 
+        <label for="contractAddress">智能合約地址</label> 
+        <div class="inline-form"> 
+          <input id="contractAddress" type="text" placeholder="0x..." autocomplete="off" /> 
+          <button id="loadContractBtn" class="primary-button" type="button">載入合約</button> 
+        </div> 
+      </section> 
+ 
+      <div class="view-switcher"> 
+        <button id="switchStudentBtn" class="switch-btn active" type="button">學生申請端</button> 
+        <button id="switchTeacherBtn" class="switch-btn" type="button">教師審查端</button> 
+      </div> 
+ 
+      <section class="workspace"> 
+        <form id="submitForm" class="panel student-panel"> 
+          <div class="panel-header"> 
+            <p class="eyebrow">Student Role</p> 
+            <h2>提交證書申請</h2> 
+          </div> 
+          <label for="studentName">學生姓名</label> 
+          <input id="studentName" type="text" required placeholder="例如：Ada Chen" /> 
+ 
+          <label for="certificateTitle">證書標題</label> 
+          <input id="certificateTitle" type="text" required placeholder="例如：區塊鏈程式設計優良獎" /> 
+ 
+          <label for="achievementDescription">成就描述</label> 
+          <textarea 
+            id="achievementDescription" 
+            required 
+            rows="5" 
+            placeholder="請簡述您的成就，例如：完成基於 Solidity 與 ethers.js 的 NFT 證書系統。" 
+          ></textarea> 
+ 
+          <label for="evidenceUrl">佐證資料連結 (URL)</label> 
+          <input 
+            id="evidenceUrl" 
+            type="url" 
+            required 
+            placeholder="https://github.com/..." 
+          /> 
+ 
+          <div id="aiReviewResult" class="ai-review-result empty-state"> 
+            模擬 AI 審查結果將在提交後顯示於此區塊。 
+          </div> 
+ 
+          <button id="submitBtn" class="primary-button submit-button" type="submit">送出申請並等待 AI 審查</button> 
+        </form> 
+ 
+        <section id="teacherPanel" class="panel teacher-panel hidden"> 
+          <div class="panel-header"> 
+            <p class="eyebrow">Teacher Role</p> 
+            <h2>教師審查區</h2> 
+          </div> 
+          <label for="reviewRequestId">請求 ID (Request ID)</label> 
+          <div class="review-actions"> 
+            <input id="reviewRequestId" type="number" min="1" placeholder="輸入 ID" /> 
+            <button id="approveBtn" class="success-button" type="button">核准</button> 
+            <button id="mintBtn" class="primary-button" type="button">鑄造 NFT</button> 
+          </div> 
+          <div class="reject-row"> 
+            <input id="rejectReason" type="text" placeholder="若要拒絕，請填寫原因" /> 
+            <button id="rejectBtn" class="danger-button" type="button">拒絕</button> 
+          </div> 
+          <hr class="divider" /> 
+          <button id="openaiReviewBtn" class="ghost-button teacher-openai-button" type="button"> 
+            執行 OpenAI 深度審查 (對比用) 
+          </button> 
+          <button id="refreshBtn" class="ghost-button" type="button">重新整理列表</button> 
+          <div id="openaiReviewResult" class="ai-review-result empty-state"> 
+            輸入請求 ID 後執行 OpenAI 審查，結果將顯示於此以便與模擬 AI 進行比對。 
+          </div> 
+        </section> 
+      </section> 
+ 
+      <section class="requests-section"> 
+        <div class="section-heading"> 
+          <div> 
+            <p class="eyebrow">Workflow</p> 
+            <h2>申請進度列表</h2> 
+          </div> 
+          <span id="requestCount">0 筆請求</span> 
+        </div> 
+        <div id="requestList" class="request-list"></div> 
+      </section> 
+ 
+      <section class="event-section"> 
+        <div class="section-heading"> 
+          <div> 
+            <p class="eyebrow">Chain Events</p> 
+            <h2>鏈上活動日誌</h2> 
+          </div> 
+          <button id="clearLogBtn" class="ghost-button" type="button">清除日誌</button> 
+        </div> 
+        <ol id="eventLog" class="event-log"></ol> 
+      </section> 
+    </main> 
+ 
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.12.1/dist/ethers.umd.min.js"></script> 
+    <script src="./app.js"></script> 
+  </body> 
 </html>
